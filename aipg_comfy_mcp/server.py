@@ -10,16 +10,9 @@ from mcp.server.transport_security import TransportSecuritySettings
 from mcp_types import CallToolResult, TextContent
 
 from .comfy_client import ComfyClient, ComfyClientError
+from .config import load_server_config
 from .discovery import ComfyConnection, DiscoveryError, discover_comfy_connection
 from .workflow import GenerationRequest, WorkflowError, build_workflow
-
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_RESOURCES_DIR = Path(
-    r"C:\Users\John\AppData\Local\Programs\AI Playground\resources"
-)
-DEFAULT_OUTPUT_DIR = Path(r"C:\Users\John\Documents\AI-Playground\media")
-DEFAULT_TEMPLATE_PATH = PROJECT_ROOT / "workflows" / "draft_image_fast.json"
 
 
 def _load_template(path: Path) -> dict[str, Any]:
@@ -41,9 +34,9 @@ def _error_result(error: Exception) -> CallToolResult:
 
 def create_server(
     *,
-    resources_dir: Path = DEFAULT_RESOURCES_DIR,
-    output_dir: Path = DEFAULT_OUTPUT_DIR,
-    template_path: Path = DEFAULT_TEMPLATE_PATH,
+    resources_dir: Path,
+    output_dir: Path,
+    template_path: Path,
     discovery_fn: Callable[[Path], ComfyConnection] = discover_comfy_connection,
     client_factory: Callable[[ComfyConnection, Path], ComfyClient] = ComfyClient,
 ) -> MCPServer:
@@ -123,7 +116,7 @@ def create_server(
     return server
 
 
-def run_http_server(server: MCPServer) -> None:
+def run_http_server(server: MCPServer, *, host: str, port: int) -> None:
     transport_security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=[
@@ -139,8 +132,8 @@ def run_http_server(server: MCPServer) -> None:
     )
     server.run(
         "streamable-http",
-        host="0.0.0.0",
-        port=8765,
+        host=host,
+        port=port,
         streamable_http_path="/mcp",
         stateless_http=True,
         transport_security=transport_security,
@@ -148,7 +141,13 @@ def run_http_server(server: MCPServer) -> None:
 
 
 def main() -> None:
-    run_http_server(create_server())
+    config = load_server_config()
+    server = create_server(
+        resources_dir=config.resources_dir,
+        output_dir=config.output_dir,
+        template_path=config.template_path,
+    )
+    run_http_server(server, host=config.host, port=config.port)
 
 
 if __name__ == "__main__":

@@ -157,11 +157,11 @@ class ServerTests(unittest.IsolatedAsyncioTestCase):
 
         server = RecordingServer()
 
-        run_http_server(server)
+        run_http_server(server, host="127.0.0.1", port=9876)
 
         self.assertEqual(server.call[0], "streamable-http")
-        self.assertEqual(server.call[1]["host"], "0.0.0.0")
-        self.assertEqual(server.call[1]["port"], 8765)
+        self.assertEqual(server.call[1]["host"], "127.0.0.1")
+        self.assertEqual(server.call[1]["port"], 9876)
         self.assertEqual(server.call[1]["streamable_http_path"], "/mcp")
         self.assertTrue(server.call[1]["stateless_http"])
         security = server.call[1]["transport_security"]
